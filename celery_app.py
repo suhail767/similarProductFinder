@@ -1,5 +1,5 @@
 from celery import Celery
-from app import get_similar_products_async
+from tasks import get_similar_products_async
 
 
 celery = Celery(__name__, broker='redis://localhost:6379/0')

@@ -1,69 +1,20 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <title>Recommendations</title>
-  </head>
-  <body>
-    <h1>Recommendations</h1>
-    <form method="GET">
-      <label for="q">Search:</label>
-      <input type="text" name="q" id="q" value="{{ search_term }}">
-      <button type="submit">Search</button>
-    </form>
-    {% if not products %}
-      <p>No products found.</p>
-    {% else %}
-      <ul>
-        {% for product in products %}
-          <li>
-            <a href="?id={{ product['id'] }}&q={{ search_term }}">{{ product['title'] }}</a>
-            <img src="{{ product['images'][0]['src'] }}" alt="{{ product['title'] }}" width="200" height="200">
-            <p>Product ID: {{ product['id'] }}</p>
-            <p>Product Type: {{ product['product_type'] }}</p>
-            <p>Tags: {{ product['tags'] }}</p>
-          </li>
-        {% endfor %}
-      </ul>
-      {% if selected_product %}
-        <h2>Selected Product</h2>
-        <h3>{{ selected_product['title'] }}</h3>
-        <img src="{{ selected_product['images'][0]['src'] }}" alt="{{ selected_product['title'] }}" width="200" height="200">
-        <p>Product ID: {{ selected_product['id'] }}</p>
-        <p>Product Type: {{ selected_product['product_type'] }}</p>
-        <p>Tags: {{ selected_product['tags'] }}</p>
-        <p>Similarity Score: N/A</p>
-      {% endif %}
-      {% if similar_products.ready() %}
-        <h2>Similar Products</h2>
-        <ul>
-          {% for product in similar_products.get('products', []) %}
+<head>
+    <title>Product Recommendations</title>
+</head>
+<body>
+    <h1>Product Recommendations</h1>
+    <ul>
+        {% for product in similar_products %}
             <li>
-              <h3>{{ product['title'] }}</h3>
-              <img src="{{ product['images'][0]['src'] }}" alt="{{ product['title'] }}" width="200" height="200">
-              <p>Product ID: {{ product['id'] }}</p>
-              <p>Product Type: {{ product['product_type'] }}</p>
-              <p>Tags: {{ product['tags'] }}</p>
-              <p>Similarity Score: {{ product['similarity_score'] }}</p>
+                <h2>{{ product.title }}</h2>
+                <img src="{{ product.images[0].src }}" alt="{{ product.title }}">
+                <p>Product Type: {{ product.product_type }}</p>
+                <p>Tags: {{ product.tags }}</p>
+                <p>Similarity Score: {{ product.similarity_score }}</p>
             </li>
-          {% endfor %}
-        </ul>
-        {% if similar_products.total %}
-          {% set pages = range(1, similar_products.pages + 1) %}
-          <div>
-            {% for page in pages %}
-              {% if page == similar_products.page %}
-                {{ page }}
-              {% else %}
-                <a href="{{ similar_products.url_for(page=page) }}">Page {{ page }}</a>
-              {% endif %}
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% elif similar_products.failed() %}
-        <p>Failed to get similar products. Please try again later.</p>
-      {% else %}
-        <p>Loading similar products...</p>
-      {% endif %}
-    {% endif %}
-  </body>
+        {% endfor %}
+    </ul>
+</body>
 </html>

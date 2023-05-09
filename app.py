@@ -101,7 +101,6 @@ def get_similar_products(product_id, url, search_term=None):
     nlp_scores = {}
     for product in products:
         if product['id'] != product_id:
-
             nlp_scores[product['id']] = get_nlp_similarity(selected_product['title'], product['title'])
 
     # Calculate the image similarity score between the selected product's images and the images of all other products
@@ -142,9 +141,6 @@ def get_similar_products(product_id, url, search_term=None):
     return similar_products
 
 
-@celery.task(name='tasks.get_similar_products_async')
-def get_similar_products_async(product_id, url):
-    return get_similar_products(product_id, url)
 
 
 """
