@@ -1,35 +1,33 @@
-import math
-from flask import Flask, render_template, request
-from flask_caching import Cache
-
-import os
-import time
-import json
-import requests
-import spacy
-from PIL import Image
-from io import BytesIO
-from celery_app import make_celery
-
+from flask import Flask
 
 app = Flask(__name__)
-app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
-app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
-
-celery = make_celery(app)
-cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 60*60})
 
 @app.route('/')
 def home():
     return 'Welcome to the recommendation system!'
 
 
+from flask import render_template
+
+import json
+import requests
+import spacy
+from PIL import Image
+from io import BytesIO
+
+
 # Load the SpaCy model
 nlp = spacy.load("en_core_web_md")
 
+import requests
+import json
+
+
+import os
+import time
 
 # Define the function to get data from the website
-def get_data_from_website(url, search_term=None):
+def get_data_from_website(url):
     # Check if the local JSON file exists and is not older than 1 day
     if os.path.exists('products.json'):
         age = time.time() - os.path.getmtime('products.json')
@@ -43,19 +41,12 @@ def get_data_from_website(url, search_term=None):
     response = requests.get(url)
     data = response.json()
 
-    # Filter products by search term, if provided
-    if search_term:
-        filtered_products = []
-        for product in data['products']:
-            if search_term.lower() in product['title'].lower():
-                filtered_products.append(product)
-        data['products'] = filtered_products
-
     # Save the product data to a local JSON file
     with open('products.json', 'w') as f:
         json.dump(data, f)
 
     return data
+
 
 
 # Define the function to get product details
@@ -71,6 +62,7 @@ def get_product_details(product_id):
     raise ValueError(f"Product with ID {product_id} not found.")
 
 
+
 # Define the function to calculate NLP similarity score between two strings
 def get_nlp_similarity(str1, str2):
     doc1 = nlp(str1)
@@ -84,12 +76,11 @@ def get_image_similarity(image1, image2):
     img2 = Image.open(BytesIO(requests.get(image2).content))
     return img1.histogram() == img2.histogram()
 
-
 # Define the function to get similar products
-def get_similar_products(product_id, url, search_term=None):
+def get_similar_products(product_id, url):
 
     # Get the product data from the website
-    data = get_data_from_website(url, search_term)
+    data = get_data_from_website(url)
     products = data['products']
 
     # Get the features for the selected product
@@ -100,7 +91,9 @@ def get_similar_products(product_id, url, search_term=None):
     nlp_scores = {}
     for product in products:
         if product['id'] != product_id:
+            #print("Comparing with product:", product)
             nlp_scores[product['id']] = get_nlp_similarity(selected_product['title'], product['title'])
+
 
     # Calculate the image similarity score between the selected product's images and the images of all other products
     image_scores = {}
@@ -108,13 +101,7 @@ def get_similar_products(product_id, url, search_term=None):
         if product['id'] != product_id:
             for image in selected_product['images']:
                 for pimage in product['images']:
-                    score = get_image_similarity(image['src'], pimage['src'])
-                    # Update the score only if it is higher than the previous score
-                    if product['id'] in image_scores:
-                        if score > image_scores[product['id']]:
-                            image_scores[product['id']] = score
-                    else:
-                        image_scores[product['id']] = score
+                    image_scores[product['id']] = get_image_similarity(image['src'], pimage['src'])
 
     # Combine the NLP and image similarity scores using a weighted sum
     combined_scores = {}
@@ -139,12 +126,6 @@ def get_similar_products(product_id, url, search_term=None):
 
     return similar_products
 
-
-@celery.task(name='tasks.get_similar_products_async')
-def get_similar_products_async(product_id, url, search_term=None):
-    return get_similar_products(product_id, url, search_term)
-
-
 url = 'https://www.boysnextdoor-apparel.co/collections/all/products.json'
 product_id = 7039306924182
 
@@ -154,19 +135,6 @@ def get_recommendations(product_id):
     similar_products = get_similar_products(product_id, url)
     return render_template('recommendations.html', similar_products=similar_products)
 
-
-@app.route('/recommendations')
-@cache.cached(timeout=3600)
-def get_recommendations():
-    search_term = request.args.get('search')
-    if search_term:
-        search_term = search_term.strip()
-    product_id = request.args.get('product_id')
-    if product_id:
-        product_id = int(product_id)
-    url = 'https://www.boysnextdoor-apparel.co/collections/all/products.json'
-    similar_products = get_similar_products_async.delay(product_id, url, search_term)
-    return render_template('recommendations.html', similar_products=similar_products.get())
 
 
 if __name__ == '__main__':

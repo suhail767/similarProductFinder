@@ -9,7 +9,7 @@ import requests
 import spacy
 from PIL import Image
 from io import BytesIO
-
+from celery_app import make_celery
 
 
 app = Flask(__name__)
@@ -18,6 +18,7 @@ app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 
 celery = make_celery(app)
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 60*60})
+
 
 @app.route('/')
 def home():
@@ -142,11 +143,11 @@ def get_similar_products(product_id, url, search_term=None):
 
 
 @celery.task(name='tasks.get_similar_products_async')
-def get_similar_products_async(product_id, url, search_term=None):
-    return get_similar_products(product_id, url, search_term)
+def get_similar_products_async(product_id, url):
+    return get_similar_products(product_id, url)
 
 
-
+"""
 url = 'https://www.boysnextdoor-apparel.co/collections/all/products.json'
 product_id = 7039306924182
 
@@ -155,7 +156,7 @@ def get_recommendations(product_id):
     url = 'https://www.boysnextdoor-apparel.co/collections/all/products.json'
     similar_products = get_similar_products(product_id, url)
     return render_template('recommendations.html', similar_products=similar_products)
-
+"""
 
 
 @app.route('/recommendations')
