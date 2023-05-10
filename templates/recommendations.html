@@ -1,69 +1,36 @@
-<!doctype html>
-<html>
-  <head>
-    <title>Recommendations</title>
-  </head>
-  <body>
-    <h1>Recommendations</h1>
-    <form method="GET">
-      <label for="q">Search:</label>
-      <input type="text" name="q" id="q" value="{{ search_term }}">
-      <button type="submit">Search</button>
-    </form>
-    {% if not products %}
-      <p>No products found.</p>
-    {% else %}
-      <ul>
-        {% for product in products %}
-          <li>
-            <a href="?id={{ product['id'] }}&q={{ search_term }}">{{ product['title'] }}</a>
-            <img src="{{ get_image_url(product) }}" alt="{{ product['title'] }}" width="200" height="200">
-            <p>Product ID: {{ product['id'] }}</p>
-            <p>Product Type: {{ product['product_type'] }}</p>
-            <p>Tags: {{ product['tags'] }}</p>
-          </li>
-        {% endfor %}
-      </ul>
-      {% if selected_product %}
-        <h2>Selected Product</h2>
-        <h3>{{ selected_product['title'] }}</h3>
-        <img src="{{ get_image_url(selected_product) }}" alt="{{ selected_product['title'] }}" width="200" height="200">
-        <p>Product ID: {{ selected_product['id'] }}</p>
-        <p>Product Type: {{ selected_product['product_type'] }}</p>
-        <p>Tags: {{ selected_product['tags'] }}</p>
-        <p>Similarity Score: N/A</p>
-      {% endif %}
-      {% if similar_products.ready() %}
-        <h2>Similar Products</h2>
-        <ul>
-          {% for product in similar_products.get('products', []) %}
-            <li>
-              <h3>{{ product['title'] }}</h3>
-              <img src="{{ get_image_url(product) }}" alt="{{ product['title'] }}" width="200" height="200">
-              <p>Product ID: {{ product['id'] }}</p>
-              <p>Product Type: {{ product['product_type'] }}</p>
-              <p>Tags: {{ product['tags'] }}</p>
-              <p>Similarity Score: {{ product['similarity_score'] }}</p>
-            </li>
-          {% endfor %}
-        </ul>
-        {% if similar_products.total %}
-          {% set pages = range(1, similar_products.pages + 1) %}
-          <div>
-            {% for page in pages %}
-              {% if page == similar_products.page %}
-                {{ page }}
-              {% else %}
-                <a href="{{ url_for('get_recommendations', page=page, id=selected_product['id'], q=search_term) }}">{{ page }}</a>
-              {% endif %}
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% elif similar_products.failed() %}
-        <p>Failed to get similar products. Please try again later.</p>
-      {% else %}
-        <p>Loading similar products...</p>
-      {% endif %}
-    {% endif %}
-  </body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Selected Product</h2>
+  <div class="product">
+    <div class="product-image">
+      <img src="{{ get_image_url(selected_product) }}" alt="{{ selected_product.title }}" width="250">
+    </div>
+    <div class="product-details">
+      <h3>{{ selected_product.title }}</h3>
+      <p><strong>Product Type:</strong> {{ selected_product.product_type }}</p>
+      <p><strong>Vendor:</strong> {{ selected_product.vendor }}</p>
+      <p><strong>Tags:</strong> {{ selected_product.tags }}</p>
+      <p><strong>Product ID:</strong> {{ selected_product.id }}</p>
+    </div>
+  </div>
+
+  <h2>Similar Products</h2>
+  <div class="products">
+    {% for product in similar_products.get() %}
+      <div class="product">
+        <div class="product-image">
+          <img src="{{ get_image_url(product) }}" alt="{{ product.title }}" width="250">
+        </div>
+        <div class="product-details">
+          <h3>{{ product.title }}</h3>
+          <p><strong>Product Type:</strong> {{ product.product_type }}</p>
+          <p><strong>Vendor:</strong> {{ product.vendor }}</p>
+          <p><strong>Tags:</strong> {{ product.tags }}</p>
+          <p><strong>Product ID:</strong> {{ product.id }}</p>
+          <p><strong>Similarity Score:</strong> {{ product.similarity_score }}</p>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

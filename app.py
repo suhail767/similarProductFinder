@@ -32,9 +32,16 @@ def get_recommendations():
     url = 'https://www.boysnextdoor-apparel.co/collections/all/products.json'
 
     try:
-        # Call the Celery task asynchronously to get the similar products for the selected product
+        # Get the product ID entered by the user
         product_id = int(request.args.get('id', 0))
-        similar_products = get_similar_products_async.delay(product_id, url, search_term)
+
+        # Check if the product ID is valid
+        selected_product = get_product_details(product_id)
+        if not selected_product:
+            return 'Invalid product ID'
+
+        # Call the Celery task asynchronously to get the similar products for the selected product
+        similar_products_task = get_similar_products_async.delay(product_id, url, search_term)
 
         # Get the product data from the website
         data = get_data_from_website(url, search_term)
@@ -55,18 +62,29 @@ def get_recommendations():
         # Slice the products list to get only the products to display on the current page
         current_page_products = products[start_index:end_index]
 
-        # Get the selected product ID from the query string, default to the first product on the current page
-        if product_id == 0 and current_page_products:
-            product_id = current_page_products[0]['id']
-        selected_product = get_product_details(product_id)
+        # Get the selected product details
+        selected_product_details = {
+            'id': selected_product['id'],
+            'title': selected_product['title'],
+            'product_type': selected_product['product_type'],
+            'vendor': selected_product['vendor'],
+            'tags': selected_product['tags'],
+            'images': selected_product['images']
+        }
 
         # Calculate the total number of pages
         num_pages = math.ceil(len(products) / per_page)
-
+        # Check if the similar products task has completed
+        if similar_products_task.ready():
+            # Get the results from the task
+            similar_products = similar_products_task.get()
+        else:
+            # Set the similar products to None
+            similar_products = None
         # Return the current page number, number of pages, and the products and similar products to display
         # on the current page
         return render_template('recommendations.html', page=page, num_pages=num_pages, products=current_page_products,
-                               selected_product=selected_product, similar_products=similar_products,
+                               selected_product=selected_product_details, similar_products=similar_products,
                                search_term=search_term)
 
     except Exception as e:
