@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block title %}Recommendations{% endblock %}
+
 {% block content %}
   <h2>Selected Product</h2>
   <div class="product">
@@ -15,22 +17,28 @@
     </div>
   </div>
 
-  <h2>Similar Products</h2>
-  <div class="products">
-    {% for product in similar_products.get() %}
-      <div class="product">
-        <div class="product-image">
-          <img src="{{ get_image_url(product) }}" alt="{{ product.title }}" width="250">
+  {% if similar_products %}
+    <h2>Similar Products</h2>
+    <div class="products">
+      {% for product in similar_products %}
+        <div class="product">
+          <div class="product-image">
+            <img src="{{ get_image_url(product) }}" alt="{{ product.title }}" width="250">
+          </div>
+          <div class="product-details">
+            <h3>{{ product.title }}</h3>
+            <p><strong>Product Type:</strong> {{ product.product_type }}</p>
+            <p><strong>Vendor:</strong> {{ product.vendor }}</p>
+            <p><strong>Tags:</strong> {{ product.tags }}</p>
+            <p><strong>Product ID:</strong> {{ product.id }}</p>
+            {% if 'similarity_score' in product %}
+              <p><strong>Similarity Score:</strong> {{ product.similarity_score }}</p>
+            {% endif %}
+          </div>
         </div>
-        <div class="product-details">
-          <h3>{{ product.title }}</h3>
-          <p><strong>Product Type:</strong> {{ product.product_type }}</p>
-          <p><strong>Vendor:</strong> {{ product.vendor }}</p>
-          <p><strong>Tags:</strong> {{ product.tags }}</p>
-          <p><strong>Product ID:</strong> {{ product.id }}</p>
-          <p><strong>Similarity Score:</strong> {{ product.similarity_score }}</p>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No similar products found.</p>
+  {% endif %}
 {% endblock %}

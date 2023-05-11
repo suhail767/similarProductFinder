@@ -1,5 +1,5 @@
 import math
-from flask import Flask, render_template, request, jsonify, url_for
+from flask import Flask, render_template, request, jsonify, url_for, redirect
 from flask_caching import Cache
 
 from celery_utils import make_celery
@@ -22,7 +22,13 @@ nlp = spacy.load("en_core_web_md")
 
 @app.route('/')
 def home():
-    return 'Welcome to the recommendation system!'
+    return render_template('home.html')
+
+
+@app.route('/submit_product_id', methods=['POST'])
+def submit_product_id():
+    product_id = request.form.get('product_id')
+    return redirect(url_for('get_recommendations', product_id=product_id))
 
 
 @app.route('/recommendations')
@@ -33,7 +39,11 @@ def get_recommendations():
 
     try:
         # Get the product ID entered by the user
-        product_id = int(request.args.get('id', 0))
+        product_id = int(request.args.get('product_id'))
+
+        if not product_id:
+            # If product ID is not provided, display a form to enter the product ID
+            return render_template('get_product_id.html')
 
         # Check if the product ID is valid
         selected_product = get_product_details(product_id)
@@ -74,6 +84,8 @@ def get_recommendations():
 
         # Calculate the total number of pages
         num_pages = math.ceil(len(products) / per_page)
+        """
+       
         # Check if the similar products task has completed
         if similar_products_task.ready():
             # Get the results from the task
@@ -81,6 +93,7 @@ def get_recommendations():
         else:
             # Set the similar products to None
             similar_products = None
+        """
         # Return the current page number, number of pages, and the products and similar products to display
         # on the current page
         return render_template('recommendations.html', page=page, num_pages=num_pages, products=current_page_products,
