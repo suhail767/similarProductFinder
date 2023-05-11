@@ -1,7 +1,7 @@
 import math
 from flask import Flask, render_template, request, jsonify, url_for, redirect
 from flask_caching import Cache
-
+import webbrowser
 from celery_utils import make_celery
 from utils import get_data_from_website, get_product_details, get_nlp_similarity, get_image_similarity, get_similar_products
 from tasks import get_similar_products_async
@@ -84,8 +84,7 @@ def get_recommendations():
 
         # Calculate the total number of pages
         num_pages = math.ceil(len(products) / per_page)
-        """
-       
+
         # Check if the similar products task has completed
         if similar_products_task.ready():
             # Get the results from the task
@@ -93,7 +92,7 @@ def get_recommendations():
         else:
             # Set the similar products to None
             similar_products = None
-        """
+
         # Return the current page number, number of pages, and the products and similar products to display
         # on the current page
         return render_template('recommendations.html', page=page, num_pages=num_pages, products=current_page_products,
@@ -116,9 +115,13 @@ def similar_products(product_id):
 @app.context_processor
 def utility_functions():
     def get_image_url(product):
-        return url_for('static', filename=product['images'])
+        if isinstance(product['images'], list):
+            return [url_for('static', filename=image) for image in product['images']]
+        else:
+            return url_for('static', filename=product['images'])
     return {'get_image_url': get_image_url}
 
 
 if __name__ == '__main__':
     app.run(debug=True)
+    webbrowser.open('http://127.0.0.1:5000', new=2)
